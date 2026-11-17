@@ -3,45 +3,26 @@ apiVersion: v1
 kind: Pod
 metadata:
   labels:
-    run: docker
-  name: docker
+    run: kubernetes
+  name: kubernetes
 spec:
+  serviceAccountName: kubernetes
   containers:
-  - command:
-    - sleep
-    - "3600"
-    image: docker
-    name: docker
-    volumeMounts:
-    - mountPath: /var/run/docker.sock
-      name: docker
-  volumes:
-  - name: docker
-    hostPath:
-      path: /var/run/docker.sock
+  - image: kaizenacademy/my-binary:1.0.0
+    name: kubernetes
     '''
 
-podTemplate(cloud: 'kubernetes', label: 'docker', name: 'docker', yaml: template) {
-    node("docker") {
-        container("docker") {
+podTemplate(cloud: 'kubernetes', label: 'kubernetes', name: 'kubernetes', yaml: template) {
+    node("kubernetes") {
+        container("kubernetes") {
     stage("Checkout SCM") {
-        git branch: 'main', url: 'https://github.com/adilet2306/may-group-2026-ci.git'
+        git branch: 'main', url: 'https://github.com/issallina/may-group-2026-cd.git'
+    }
+    
+    stage("Deploy") {
+        sh "helm upgrade --install flask ./flask-app --set deployment.image=isalina1318/jenkins-flask-app"
     }
 
-    withCredentials([usernamePassword(credentialsId: 'docker-creds', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
-
-    stage("Docker login") {
-        sh "docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}"
-    }
-
-    stage("Build image") {
-        sh "docker build -t ${DOCKER_USER}/jenkins-flask-app:1.0.0 ."
-    }
-
-    stage("Push image") {
-        sh "docker push ${DOCKER_USER}/jenkins-flask-app:1.0.0"
-    }
-}
 }
 }
 }
